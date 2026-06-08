@@ -15,3 +15,21 @@ export const getMatchResultsController = async (req: Request, res: Response) => 
     return res.status(500).json({ status: false, message: error.message });
   }
 };
+
+export const receiveWebhookController = async (req: Request, res: Response) => {
+  try {
+    const { id_target, id_kandidat_terbaik, tingkat_kemiripan, status_kecocokan, catatan } = req.body;
+
+    console.log(`[WEBHOOK] Hasil ML diterima untuk Laporan ID: ${id_target}`);
+    console.log(`[WEBHOOK] Status: ${status_kecocokan} | Skor: ${tingkat_kemiripan}%`);
+
+    if (status_kecocokan && id_kandidat_terbaik) {
+      await matchingService.saveMatchResult(id_target, id_kandidat_terbaik, tingkat_kemiripan, status_kecocokan);
+    }
+
+    return res.status(200).json({ message: "Webhook diterima dengan baik oleh Node.js" });
+  } catch (error: any) {
+    console.error('[WEBHOOK ERROR]:', error.message);
+    return res.status(500).json({ status: false, message: error.message });
+  }
+};
