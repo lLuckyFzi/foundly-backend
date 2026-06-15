@@ -23,7 +23,7 @@ export const register = async (data: RegisterDTO) => {
       email: data.email,
       password: hashedPassword,
       kontak: data.kontak,
-      role: data.role || 'PELAPOR' // Default role sesuai rancangan jika tidak diisi
+      role: data.role || "PUBLIC" // Default role sesuai rancangan jika tidak diisi
     }
   });
 

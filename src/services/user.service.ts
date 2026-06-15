@@ -62,7 +62,7 @@ export const getAllUsers = async () => {
 };
 
 // 4. [KHUSUS ADMIN]: Mengubah Role User (Role Management)
-export const updateUserRole = async (id_user: number, newRole: 'PELAPOR' | 'PENEMU' | 'ADMIN') => {
+export const updateUserRole = async (id_user: number, newRole: 'PUBLIC' | 'ADMIN') => {
   const userExists = await prisma.user.findUnique({ where: { id_user } });
   if (!userExists) throw new Error('User yang akan diubah tidak ditemukan');
 

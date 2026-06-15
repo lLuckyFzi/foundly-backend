@@ -7,7 +7,7 @@ declare global {
     interface Request {
       user?: {
         id_user: number;
-        role: 'PELAPOR' | 'PENEMU' | 'ADMIN';
+        role: 'PUBLIC' | 'ADMIN';
       };
     }
   }
