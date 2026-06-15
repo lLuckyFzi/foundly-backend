@@ -3,7 +3,7 @@ export interface RegisterDTO {
   email: string;
   password: string;
   kontak: string;
-  role?: 'PELAPOR' | 'PENEMU';
+  role?: 'PUBLIC' | 'ADMIN';
 }
 
 export interface LoginDTO {

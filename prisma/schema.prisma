@@ -8,8 +8,7 @@ generator client {
 
 // 1. ENTITAS USER
 enum Role {
-  PELAPOR
-  PENEMU
+  PUBLIC
   ADMIN
 }
 
@@ -18,7 +17,7 @@ model User {
   nama          String         @db.VarChar(100)
   email         String         @unique @db.VarChar(50)
   password      String         @db.VarChar(100)
-  role          Role           @default(PELAPOR)
+  role          Role           @default(PUBLIC)
   kontak        String         @db.VarChar(20)
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
