@@ -15,6 +15,8 @@ export const register = async (data: RegisterDTO) => {
 
   // 2. Hash password menggunakan salt round 10 (Standar Industri)
   const hashedPassword = await bcrypt.hash(data.password, 10);
+  
+  const sanitizedPhoneNumber = data.kontak.toString()
 
   // 3. Simpan ke MySQL via Prisma
   const newUser = await prisma.user.create({
@@ -22,7 +24,7 @@ export const register = async (data: RegisterDTO) => {
       nama: data.nama,
       email: data.email,
       password: hashedPassword,
-      kontak: data.kontak,
+      kontak: sanitizedPhoneNumber,
       role: data.role || "PUBLIC" // Default role sesuai rancangan jika tidak diisi
     }
   });

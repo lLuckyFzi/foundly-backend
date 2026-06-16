@@ -35,6 +35,23 @@ export const getAllLostReports = async () => {
   });
 };
 
+export const getLostReportsByUserId = async (id_user: number) => {
+  return await prisma.barangHilang.findMany({
+    where: { 
+      id_user: id_user
+    },
+    include: {
+      user: {
+        select: {
+          nama: true,
+          kontak: true
+        }
+      }
+    },
+    orderBy: { createdAt: 'desc' }
+  });
+};
+
 export const getLostReportById = async (id_barang_hilang: number) => {
   const report = await prisma.barangHilang.findUnique({
     where: { id_barang_hilang },
