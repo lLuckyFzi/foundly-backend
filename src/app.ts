@@ -23,18 +23,18 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.use('/api/v1/admin', adminRoutes);
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/users', userRoutes);
+
 app.use('/api/v1/items', itemRoutes);
 app.use('/api/v1/items-found', foundItemRoutes);
+
+app.use('/api/v1/claims', claimRoutes);
 app.use('/api/v1/matching', matchingRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
-app.use('/api/v1/claims', claimRoutes);
-
-app.use('/uploads', express.static('uploads'));
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 if (process.env.NODE_ENV !== 'test') {
   app.listen(PORT, () => {

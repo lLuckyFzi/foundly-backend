@@ -30,6 +30,17 @@ export const getAllLostReportsController = async (req: Request, res: Response) =
   }
 };
 
+export const getMyLostReportsController = async (req: Request, res: Response) => {
+  try {
+    const id_user = req.user!.id_user;
+    const data = await itemService.getLostReportsByUserId(id_user);
+    
+    return res.status(200).json({ status: true, data });
+  } catch (error: any) {
+    return res.status(500).json({ status: false, message: error.message });
+  }
+};
+
 export const getLostReportByIdController = async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id as string);

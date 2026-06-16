@@ -47,6 +47,23 @@ export const getFoundReportById = async (id_temuan: number) => {
   return report;
 };
 
+export const getFoundReportsByUserId = async (id_user: number) => {
+  return await prisma.barangTemuan.findMany({
+    where: { 
+      id_user: id_user
+    },
+    include: {
+      user: {
+        select: {
+          nama: true,
+          kontak: true
+        }
+      }
+    },
+    orderBy: { createdAt: 'desc' }
+  });
+};
+
 // 4. Menghapus laporan barang temuan (Hanya bisa dilakukan oleh Penemu asli atau Admin)
 export const deleteFoundReport = async (id_temuan: number, id_user: number, role: string) => {
   const report = await prisma.barangTemuan.findUnique({ where: { id_temuan } });

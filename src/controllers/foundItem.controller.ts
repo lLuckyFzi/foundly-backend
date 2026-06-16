@@ -36,6 +36,17 @@ export const getAllFoundReportsController = async (req: Request, res: Response) 
   }
 };
 
+export const getMyFoundReportsController = async (req: Request, res: Response) => {
+  try {
+    const id_user = req.user!.id_user; 
+    const data = await foundItemService.getFoundReportsByUserId(id_user);
+    
+    return res.status(200).json({ status: true, data });
+  } catch (error: any) {
+    return res.status(500).json({ status: false, message: error.message });
+  }
+};
+
 export const getFoundReportByIdController = async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id as string);
