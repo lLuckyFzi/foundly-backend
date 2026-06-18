@@ -12,6 +12,9 @@ import claimRoutes from './routes/claim.routes.js';
 import notificationRoutes from './routes/notification.routes.js';
 import matchingRoutes from './routes/matching.routes.js';
 import foundItemRoutes from './routes/foundItem.routes.js';
+import verificationRoutes from './routes/verification.routes.js';
+
+import { initWhatsApp } from './utils/whatsapp.util.js';
 
 const PORT = process.env.PORT || 5000;
 
@@ -26,7 +29,10 @@ app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 app.use('/api/v1/auth', authRoutes);
+
+app.use('/api/v1/admin/verifications', verificationRoutes);
 app.use('/api/v1/admin', adminRoutes);
+
 app.use('/api/v1/users', userRoutes);
 
 app.use('/api/v1/items', itemRoutes);
@@ -39,6 +45,8 @@ app.use('/api/v1/notifications', notificationRoutes);
 if (process.env.NODE_ENV !== 'test') {
   app.listen(PORT, () => {
     console.log(`[Foundly Server Ready]: Running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode.`);
+    
+    initWhatsApp();
   });
 }
 

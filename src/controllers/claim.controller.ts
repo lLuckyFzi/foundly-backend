@@ -3,21 +3,18 @@ import * as claimService from '../services/claim.service.js';
 
 export const createClaimController = async (req: Request, res: Response) => {
   try {
-    // Validasi apakah ada file bukti klaim yang diunggah
     if (!req.file) {
       return res.status(400).json({ status: false, message: 'Bukti klaim fisik (Foto serah terima/KTM) wajib diunggah' });
     }
 
-    const id_user_pelapor = req.user!.id_user; // Diambil aman dari token login pelapor
-    const { id_temuan } = req.body;
+    const { id_barang_hilang } = req.body;
 
-    if (!id_temuan) {
-      return res.status(400).json({ status: false, message: 'ID Barang temuan yang ingin diklaim wajib diisi' });
+    if (!id_barang_hilang) {
+      return res.status(400).json({ status: false, message: 'ID Laporan Kehilangan wajib disertakan' });
     }
 
     const result = await claimService.createClaimTicket(
-      id_user_pelapor,
-      parseInt(id_temuan),
+      parseInt(id_barang_hilang),
       req.file.filename
     );
 

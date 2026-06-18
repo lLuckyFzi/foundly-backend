@@ -1,8 +1,8 @@
 import prisma from '../config/database.js';
+import { triggerMatchingForFoundItem } from './matching.service.js';
 
-// 1. Membuat laporan barang temuan baru
 export const createFoundReport = async (id_user: number, data: any, filename: string) => {
-  return await prisma.barangTemuan.create({
+  const newReport = await prisma.barangTemuan.create({
     data: {
       id_user: id_user,
       nama_barang: data.nama_barang,
@@ -15,6 +15,10 @@ export const createFoundReport = async (id_user: number, data: any, filename: st
       status: 'DISIMPAN' // Status default awal barang diidentifikasi aman oleh sistem
     }
   });
+
+  triggerMatchingForFoundItem(newReport.id_temuan);
+
+  return newReport
 };
 
 // 2. Mengambil semua daftar barang temuan (Public/Dashboard view)
