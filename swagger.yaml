@@ -1,0 +1,997 @@
+openapi: 3.0.3
+info:
+  title: Foundly API
+  description: |
+    REST API untuk platform Lost & Found kampus **Foundly**.
+    
+    Semua endpoint yang membutuhkan autentikasi harus menyertakan header:
+    ```
+    Authorization: Bearer <token>
+    ```
+    
+    **Role yang tersedia:**
+    - `PELAPOR` — mahasiswa/staf yang kehilangan barang
+    - `PENEMU` — mahasiswa/staf yang menemukan barang
+    - `ADMIN` — pengelola pos lost & found kampus
+  version: 1.0.0
+  contact:
+    name: Foundly Team
+
+servers:
+  - url: http://localhost:3000
+    description: Local Development
+  - url: https://api.foundly.app
+    description: Production
+
+tags:
+  - name: Auth
+    description: Registrasi dan login
+  - name: User - Profil
+    description: Manajemen profil user sendiri
+  - name: User - Admin
+    description: Manajemen semua user (Admin only)
+  - name: Barang Hilang
+    description: Laporan barang yang hilang
+  - name: Barang Temuan
+    description: Laporan barang yang ditemukan
+  - name: AI & Verifikasi
+    description: Pencocokan berbasis AI dan verifikasi fisik
+  - name: Notifikasi
+    description: Notifikasi untuk user
+  - name: Klaim & Serah Terima
+    description: Proses klaim dan histori transaksi
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    # ─── AUTH ───
+    RegisterRequest:
+      type: object
+      required: [name, email, password, role]
+      properties:
+        name:
+          type: string
+          example: Evan Wijaya
+        email:
+          type: string
+          format: email
+          example: evan@unibi.ac.id
+        password:
+          type: string
+          format: password
+          minLength: 8
+          example: rahasia123
+        role:
+          type: string
+          enum: [PELAPOR, PENEMU]
+          example: PELAPOR
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          example: evan@unibi.ac.id
+        password:
+          type: string
+          format: password
+          example: rahasia123
+
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        user:
+          $ref: '#/components/schemas/UserProfile'
+
+    # ─── USER ───
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: Evan Wijaya
+        email:
+          type: string
+          example: evan@unibi.ac.id
+        role:
+          type: string
+          enum: [PELAPOR, PENEMU, ADMIN]
+        contact:
+          type: string
+          example: "081234567890"
+        createdAt:
+          type: string
+          format: date-time
+
+    UpdateProfileRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Evan W.
+        contact:
+          type: string
+          example: "081234567890"
+        password:
+          type: string
+          format: password
+          minLength: 8
+
+    UpdateRoleRequest:
+      type: object
+      required: [role]
+      properties:
+        role:
+          type: string
+          enum: [PELAPOR, PENEMU, ADMIN]
+          example: ADMIN
+
+    # ─── BARANG ───
+    LostItem:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 10
+        title:
+          type: string
+          example: Dompet Hitam
+        description:
+          type: string
+          example: Dompet kulit hitam berisi KTM dan uang tunai
+        location:
+          type: string
+          example: Gedung A Lantai 2
+        lostAt:
+          type: string
+          format: date-time
+        photoUrl:
+          type: string
+          format: uri
+          example: https://cdn.foundly.app/photos/item-10.jpg
+        status:
+          type: string
+          enum: [OPEN, MATCHED, CLAIMED]
+        reporter:
+          $ref: '#/components/schemas/UserProfile'
+        createdAt:
+          type: string
+          format: date-time
+
+    LostItemRequest:
+      type: object
+      required: [title, description, location, lostAt]
+      properties:
+        title:
+          type: string
+          example: Dompet Hitam
+        description:
+          type: string
+          example: Dompet kulit hitam berisi KTM dan uang tunai
+        location:
+          type: string
+          example: Gedung A Lantai 2
+        lostAt:
+          type: string
+          format: date-time
+        photo:
+          type: string
+          format: binary
+          description: Upload foto barang (multipart/form-data)
+
+    FoundItem:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 5
+        title:
+          type: string
+          example: Dompet Kulit
+        description:
+          type: string
+          example: Dompet kulit hitam ditemukan di dekat kantin
+        location:
+          type: string
+          example: Kantin Gedung B
+        foundAt:
+          type: string
+          format: date-time
+        photoUrl:
+          type: string
+          format: uri
+          example: https://cdn.foundly.app/photos/found-5.jpg
+        status:
+          type: string
+          enum: [AVAILABLE, MATCHED, CLAIMED]
+        finder:
+          $ref: '#/components/schemas/UserProfile'
+        createdAt:
+          type: string
+          format: date-time
+
+    FoundItemRequest:
+      type: object
+      required: [title, description, location, foundAt]
+      properties:
+        title:
+          type: string
+          example: Dompet Kulit
+        description:
+          type: string
+          example: Dompet kulit hitam ditemukan di dekat kantin
+        location:
+          type: string
+          example: Kantin Gedung B
+        foundAt:
+          type: string
+          format: date-time
+        photo:
+          type: string
+          format: binary
+          description: Upload foto barang (multipart/form-data)
+
+    # ─── MATCHING & VERIFIKASI ───
+    MatchResult:
+      type: object
+      properties:
+        foundItem:
+          $ref: '#/components/schemas/FoundItem'
+        similarityScore:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          example: 0.87
+        reason:
+          type: string
+          example: Deskripsi dan lokasi sangat mirip
+
+    VerificationQueue:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 3
+        lostItem:
+          $ref: '#/components/schemas/LostItem'
+        foundItem:
+          $ref: '#/components/schemas/FoundItem'
+        similarityScore:
+          type: number
+          example: 0.91
+        status:
+          type: string
+          enum: [PENDING, APPROVED, REJECTED]
+        createdAt:
+          type: string
+          format: date-time
+
+    VerificationProcessRequest:
+      type: object
+      required: [verificationId, decision]
+      properties:
+        verificationId:
+          type: integer
+          example: 3
+        decision:
+          type: string
+          enum: [APPROVED, REJECTED]
+          example: APPROVED
+        note:
+          type: string
+          example: Pemilik sudah konfirmasi secara fisik
+
+    AdminStats:
+      type: object
+      properties:
+        totalUsers:
+          type: integer
+          example: 120
+        totalLostItems:
+          type: integer
+          example: 45
+        totalFoundItems:
+          type: integer
+          example: 38
+        totalClaimed:
+          type: integer
+          example: 27
+        pendingVerifications:
+          type: integer
+          example: 4
+
+    # ─── NOTIFIKASI ───
+    Notification:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 7
+        message:
+          type: string
+          example: Ada barang temuan yang cocok dengan laporan lo!
+        isRead:
+          type: boolean
+          example: false
+        createdAt:
+          type: string
+          format: date-time
+
+    # ─── KLAIM ───
+    ClaimRequest:
+      type: object
+      required: [lostItemId, foundItemId]
+      properties:
+        lostItemId:
+          type: integer
+          example: 10
+        foundItemId:
+          type: integer
+          example: 5
+        photo:
+          type: string
+          format: binary
+          description: Foto bukti serah terima (multipart/form-data)
+
+    ClaimHistory:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 2
+        lostItem:
+          $ref: '#/components/schemas/LostItem'
+        foundItem:
+          $ref: '#/components/schemas/FoundItem'
+        claimedBy:
+          $ref: '#/components/schemas/UserProfile'
+        photoUrl:
+          type: string
+          format: uri
+        claimedAt:
+          type: string
+          format: date-time
+
+    # ─── GENERIC ───
+    SuccessMessage:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Berhasil
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          example: Unauthorized
+        message:
+          type: string
+          example: Token tidak valid atau sudah expired
+
+paths:
+  # ══════════════════════════════════
+  # 1. AUTH
+  # ══════════════════════════════════
+  /api/v1/auth/register:
+    post:
+      tags: [Auth]
+      summary: Registrasi akun baru
+      description: Daftar akun mahasiswa atau staf baru. Tidak perlu token.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Registrasi berhasil
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Data tidak valid / email sudah terdaftar
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/auth/login:
+    post:
+      tags: [Auth]
+      summary: Login dan dapatkan JWT token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login berhasil
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Email atau password salah
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ══════════════════════════════════
+  # 2. PROFIL USER
+  # ══════════════════════════════════
+  /api/v1/users/me:
+    get:
+      tags: [User - Profil]
+      summary: Ambil profil user yang sedang login
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Data profil berhasil diambil
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        '401':
+          description: Tidak ada token / token invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags: [User - Profil]
+      summary: Update nama, kontak, atau password sendiri
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
+      responses:
+        '200':
+          description: Profil berhasil diupdate
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        '401':
+          description: Tidak ada token / token invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ══════════════════════════════════
+  # 3. MANAJEMEN USER (ADMIN)
+  # ══════════════════════════════════
+  /api/v1/users/all:
+    get:
+      tags: [User - Admin]
+      summary: Lihat semua user (Admin only)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Daftar semua user
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserProfile'
+        '403':
+          description: Bukan admin
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/users/role/{id}:
+    put:
+      tags: [User - Admin]
+      summary: Ubah role user (Admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 5
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRoleRequest'
+      responses:
+        '200':
+          description: Role berhasil diubah
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        '403':
+          description: Bukan admin
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User tidak ditemukan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/users/{id}:
+    delete:
+      tags: [User - Admin]
+      summary: Hapus akun user (Admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 5
+      responses:
+        '200':
+          description: Akun berhasil dihapus
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessMessage'
+        '403':
+          description: Bukan admin
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User tidak ditemukan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ══════════════════════════════════
+  # 4. BARANG HILANG
+  # ══════════════════════════════════
+  /api/v1/items/lost:
+    get:
+      tags: [Barang Hilang]
+      summary: Lihat semua laporan barang hilang
+      responses:
+        '200':
+          description: Daftar barang hilang
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LostItem'
+
+    post:
+      tags: [Barang Hilang]
+      summary: Buat laporan kehilangan baru
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LostItemRequest'
+      responses:
+        '201':
+          description: Laporan berhasil dibuat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LostItem'
+        '401':
+          description: Tidak ada token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/items/lost/{id}:
+    get:
+      tags: [Barang Hilang]
+      summary: Lihat detail satu laporan barang hilang
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 10
+      responses:
+        '200':
+          description: Detail barang hilang
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LostItem'
+        '404':
+          description: Laporan tidak ditemukan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags: [Barang Hilang]
+      summary: Hapus laporan barang hilang (pemilik atau admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 10
+      responses:
+        '200':
+          description: Laporan berhasil dihapus
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessMessage'
+        '403':
+          description: Bukan pemilik laporan atau admin
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Laporan tidak ditemukan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ══════════════════════════════════
+  # 5. BARANG TEMUAN
+  # ══════════════════════════════════
+  /api/v1/items-found/found:
+    get:
+      tags: [Barang Temuan]
+      summary: Lihat semua barang temuan di pos kampus
+      responses:
+        '200':
+          description: Daftar barang temuan
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FoundItem'
+
+    post:
+      tags: [Barang Temuan]
+      summary: Buat laporan penemuan baru
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/FoundItemRequest'
+      responses:
+        '201':
+          description: Laporan penemuan berhasil dibuat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FoundItem'
+        '401':
+          description: Tidak ada token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/items-found/found/{id}:
+    get:
+      tags: [Barang Temuan]
+      summary: Lihat detail satu barang temuan
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 5
+      responses:
+        '200':
+          description: Detail barang temuan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FoundItem'
+        '404':
+          description: Barang tidak ditemukan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags: [Barang Temuan]
+      summary: Hapus laporan barang temuan (penemu atau admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 5
+      responses:
+        '200':
+          description: Laporan berhasil dihapus
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessMessage'
+        '403':
+          description: Bukan penemu asli atau admin
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Laporan tidak ditemukan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ══════════════════════════════════
+  # 6. AI MATCHING & VERIFIKASI
+  # ══════════════════════════════════
+  /api/v1/matching/matches/{id_barang_hilang}:
+    get:
+      tags: [AI & Verifikasi]
+      summary: Rekomendasi barang temuan mirip berbasis AI
+      description: Mengembalikan list barang temuan yang paling mirip dengan laporan hilang yang diminta, diurutkan berdasarkan similarity score.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id_barang_hilang
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 10
+      responses:
+        '200':
+          description: Daftar rekomendasi barang temuan
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MatchResult'
+        '401':
+          description: Tidak ada token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Laporan hilang tidak ditemukan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/admin/verifications/pending:
+    get:
+      tags: [AI & Verifikasi]
+      summary: Antrean pencocokan AI yang butuh verifikasi fisik (Admin only)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Daftar item yang pending verifikasi
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/VerificationQueue'
+        '403':
+          description: Bukan admin
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/admin/verifications/process:
+    post:
+      tags: [AI & Verifikasi]
+      summary: Approval atau penolakan hasil verifikasi fisik (Admin only)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerificationProcessRequest'
+      responses:
+        '200':
+          description: Verifikasi berhasil diproses
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessMessage'
+        '403':
+          description: Bukan admin
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/admin/stats:
+    get:
+      tags: [AI & Verifikasi]
+      summary: Statistik ringkas untuk dashboard admin (Admin only)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Data statistik platform
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminStats'
+        '403':
+          description: Bukan admin
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ══════════════════════════════════
+  # 7. NOTIFIKASI
+  # ══════════════════════════════════
+  /api/v1/notifications:
+    get:
+      tags: [Notifikasi]
+      summary: Tarik daftar notifikasi user yang sedang login
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Daftar notifikasi
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Notification'
+        '401':
+          description: Tidak ada token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/notifications/{id}/read:
+    put:
+      tags: [Notifikasi]
+      summary: Tandai notifikasi sebagai sudah dibaca
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 7
+      responses:
+        '200':
+          description: Notifikasi berhasil ditandai dibaca
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessMessage'
+        '404':
+          description: Notifikasi tidak ditemukan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ══════════════════════════════════
+  # 8. KLAIM & SERAH TERIMA
+  # ══════════════════════════════════
+  /api/v1/claims/process:
+    post:
+      tags: [Klaim & Serah Terima]
+      summary: Eksekusi klaim akhir saat serah terima di pos
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ClaimRequest'
+      responses:
+        '201':
+          description: Klaim berhasil diproses
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClaimHistory'
+        '401':
+          description: Tidak ada token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Data klaim tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/claims/history:
+    get:
+      tags: [Klaim & Serah Terima]
+      summary: Histori semua transaksi klaim yang selesai (Admin only)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Histori klaim
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ClaimHistory'
+        '403':
+          description: Bukan admin
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
